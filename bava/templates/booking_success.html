@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Booking Confirmed | Bava Restaurant{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h2><i class="bi bi-check-circle-fill"></i> Booking Confirmed</h2>
+            </div>
+            <div class="card-body">
+                <h3 class="card-title">Thank you, {{ reservation.customer_name }}!</h3>
+                <p class="card-text">Your table reservation has been confirmed.</p>
+                
+                <div class="alert alert-info text-start">
+                    <h5>Reservation Details:</h5>
+                    <p><strong>Date:</strong> {{ reservation.reservation_date|date:"F j, Y" }}</p>
+                    <p><strong>Time:</strong> {{ reservation.reservation_time|time:"g:i A" }}</p>
+                    <p><strong>Table:</strong> {{ reservation.table.table_number }} ({{ reservation.table.capacity }} people)</p>
+                    <p><strong>Guests:</strong> {{ reservation.number_of_guests }}</p>
+                    {% if reservation.special_requests %}
+                        <p><strong>Special Requests:</strong> {{ reservation.special_requests }}</p>
+                    {% endif %}
+                </div>
+                
+                <p>A confirmation has been sent to {{ reservation.customer_email }}.</p>
+                
+                <a href="{% url 'home' %}" class="btn btn-primary mt-3">
+                    <i class="bi bi-house"></i> Return Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

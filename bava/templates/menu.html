@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Our Menu | Bava Restaurant{% endblock %}
+
+{% block content %}
+<h1 class="text-center mb-5" style="color: var(--primary-color);">Our Menu</h1>
+
+{% for category in categories %}
+    <h2 class="category-header">{{ category }}</h2>
+    <div class="row">
+        {% for item in menu_items %}
+            {% if item.category == category %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <h3 class="card-title">{{ item.name }}</h3>
+                            <span class="text-accent fw-bold" style="color: var(--accent-color);">KSh {{ item.price }}</span>
+                        </div>
+                        <p class="card-text text-muted">{{ item.description }}</p>
+                        {% if not item.available %}
+                            <span class="badge bg-danger">Currently Unavailable</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endfor %}
+{% endblock %}

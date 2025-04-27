@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome to Bava Restaurant{% endblock %}
+
+{% block hero_section %}
+<section class="hero-section">
+    <div class="container text-center">
+        <h1 class="display-3 fw-bold mb-4">Welcome to Bava Restaurant</h1>
+        <p class="lead mb-5">Experience fine dining at its best in Makongeni</p>
+        <a class="btn btn-primary btn-lg px-4 me-2" href="{% url 'book_table' %}">
+            <i class="bi bi-calendar-check"></i> Book a Table
+        </a>
+        <a class="btn btn-outline-light btn-lg px-4" href="{% url 'menu' %}">
+            <i class="bi bi-book"></i> View Menu
+        </a>
+    </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-emoji-heart-eyes display-4 mb-3" style="color: var(--accent-color);"></i>
+                <h3 class="card-title">Exquisite Cuisine</h3>
+                <p class="card-text">Discover our carefully crafted menu featuring the finest local and international dishes.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-calendar-event display-4 mb-3" style="color: var(--accent-color);"></i>
+                <h3 class="card-title">Easy Booking</h3>
+                <p class="card-text">Reserve your table in seconds with our simple online booking system.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-star display-4 mb-3" style="color: var(--accent-color);"></i>
+                <h3 class="card-title">Premium Service</h3>
+                <p class="card-text">Experience our renowned hospitality and attention to detail.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
