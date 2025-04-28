@@ -50,6 +50,8 @@ class Reservation(models.Model):
         choices=PAYMENT_METHOD_CHOICES,
         default='cash'
     )
+    deposit_amount = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
 
     def __str__(self):
         return f"Reservation for {self.customer_name} on {self.reservation_date} at {self.reservation_time}"

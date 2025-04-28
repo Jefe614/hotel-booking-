@@ -1,0 +1,114 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Payment Status | Bava Restaurant{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header {% if reservation.payment_status == 'paid' %}bg-success{% elif reservation.payment_status == 'pending' %}bg-warning{% else %}bg-danger{% endif %} text-white">
+                <h3 class="card-title mb-0">
+                    {% if reservation.payment_status == 'paid' %}
+                        <i class="bi bi-check-circle"></i> Payment Complete
+                    {% elif reservation.payment_status == 'pending' %}
+                        <i class="bi bi-hourglass-split"></i> Payment Processing
+                    {% else %}
+                        <i class="bi bi-x-circle"></i> Payment Failed
+                    {% endif %}
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="payment-status text-center mb-4">
+                    {% if reservation.payment_status == 'paid' %}
+                        <div class="alert alert-success">
+                            <h4><i class="bi bi-check-circle-fill"></i> Your deposit payment was successful!</h4>
+                            <p>Your table reservation has been confirmed.</p>
+                        </div>
+                    {% elif reservation.payment_status == 'pending' %}
+                        <div class="alert alert-warning">
+                            <h4><i class="bi bi-hourglass-split"></i> Your payment is being processed</h4>
+                            <p>Please wait while we confirm your payment. This page will refresh automatically.</p>
+                            <div class="spinner-border text-warning" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <h4><i class="bi bi-x-circle-fill"></i> Payment Failed</h4>
+                            <p>We could not process your payment. Please try again.</p>
+                            <a href="{% url 'payment_page' reservation.id %}" class="btn btn-primary">Try Again</a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="reservation-details">
+                    <h4>Reservation Details</h4>
+                    <table class="table table-striped">
+                        <tr>
+                            <th>Reservation ID:</th>
+                            <td>{{ reservation.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ reservation.customer_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date:</th>
+                            <td>{{ reservation.reservation_date }}</td>
+                        </tr>
+                        <tr>
+                            <th>Time:</th>
+                            <td>{{ reservation.reservation_time }}</td>
+                        </tr>
+                        <tr>
+                            <th>Guests:</th>
+                            <td>{{ reservation.number_of_guests }}</td>
+                        </tr>
+                        <tr>
+                            <th>Table:</th>
+                            <td>{{ reservation.table }}</td>
+                        </tr>
+                        <tr>
+                            <th>Payment Method:</th>
+                            <td>{{ reservation.get_payment_method_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Deposit Amount:</th>
+                            <td>KSh {{ reservation.deposit_amount }}</td>
+                        </tr>
+                        <tr>
+                            <th>Payment Status:</th>
+                            <td>
+                                {% if reservation.payment_status == 'paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif reservation.payment_status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{% url 'home' %}" class="btn btn-primary">
+                        <i class="bi bi-house"></i> Return to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if reservation.payment_status == 'pending' %}
+<script>
+    // Auto-refresh the page every 10 seconds to check payment status
+    setTimeout(function() {
+        window.location.reload();
+    }, 10000);
+</script>
+{% endif %}
+{% endblock %}
+```

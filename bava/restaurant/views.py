@@ -1,4 +1,5 @@
 # restaurant/views.py
+import json
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from .models import MenuItem, Table, Reservation
@@ -34,22 +35,28 @@ def book_table(request):
         if form.is_valid():
             reservation = form.save(commit=False)
             reservation.user = request.user
-            reservation.is_confirmed = True
+            # Set confirmed to false until payment is made
+            reservation.is_confirmed = False
             reservation.save()
             
-            # Mark the table as unavailable if needed
-            # (or implement a more complex availability logic)
-            # reservation.table.is_available = False
-            # reservation.table.save()
+            # Store the reservation ID in session for the payment process
+            request.session['pending_reservation_id'] = reservation.id
             
-            return redirect('booking_success', reservation_id=reservation.id)
+            if request.POST.get('payment_method') == 'mpesa':
+                # Redirect to payment page or process M-Pesa payment
+                return redirect('payment_page', reservation_id=reservation.id)
+            else:
+                # Cash payment option (handled at the restaurant)
+                reservation.payment_method = 'cash'
+                reservation.save()
+                return redirect('booking_success', reservation_id=reservation.id)
     else:
         form = ReservationForm()
     
-    # Pass form errors to template if any
     return render(request, 'book.html', {
         'form': form,
-        'form_errors': form.errors if request.method == 'POST' else None
+        'form_errors': form.errors if request.method == 'POST' else None,
+        'deposit_amount': settings.TABLE_RESERVATION_DEPOSIT  # Set this in settings.py
     })
 
 @login_required(login_url='login')
@@ -149,6 +156,7 @@ def mpesa_stk_push(request):
         data = json.loads(request.body)
         phone = data.get('phone')
         amount = data.get('amount')
+        reservation_id = data.get('reservation_id')
 
         if not phone or not amount:
             return JsonResponse({'success': False, 'error': 'Missing phone or amount'})
@@ -186,13 +194,89 @@ def mpesa_stk_push(request):
             "PhoneNumber": phone,
             "CallBackURL": callback_url,
             "AccountReference": "Bava Restaurant",
-            "TransactionDesc": "Table Reservation Payment"
+            "TransactionDesc": "Table Reservation Deposit"
         }
 
         response = requests.post(stk_push_url, json=payload, headers=headers)
         response_data = response.json()
 
         if response.status_code == 200:
-            return JsonResponse({'success': True})
+            # Store reservation ID and amount for callback verification
+            if reservation_id:
+                try:
+                    reservation = Reservation.objects.get(id=reservation_id)
+                    reservation.deposit_amount = amount
+                    reservation.payment_method = 'mpesa'
+                    reservation.payment_status = 'pending'
+                    # You might want to store CheckoutRequestID for verification
+                    if 'CheckoutRequestID' in response_data:
+                        reservation.transaction_id = response_data['CheckoutRequestID']
+                    reservation.save()
+                except Reservation.DoesNotExist:
+                    pass
+                
+            return JsonResponse({'success': True, 'response': response_data})
         else:
             return JsonResponse({'success': False, 'error': response_data})
+        
+@csrf_exempt
+def mpesa_callback(request):
+    if request.method == 'POST':
+        # Parse the callback data
+        try:
+            data = json.loads(request.body)
+            # Get the relevant payment details
+            checkout_request_id = data.get('Body', {}).get('stkCallback', {}).get('CheckoutRequestID')
+            result_code = data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
+            
+            # Find the reservation with this checkout request ID
+            try:
+                reservation = Reservation.objects.get(transaction_id=checkout_request_id)
+                
+                if result_code == 0:  # Success
+                    reservation.payment_status = 'paid'
+                    reservation.is_confirmed = True
+                    reservation.save()
+                    # You could send a confirmation email here
+                else:
+                    reservation.payment_status = 'failed'
+                    reservation.save()
+                    
+                return JsonResponse({'status': 'success'})
+                
+            except Reservation.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Reservation not found'})
+                
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'failure', 'message': 'Invalid request method'})
+
+
+@login_required(login_url='login')
+def payment_page(request, reservation_id):
+    try:
+        reservation = Reservation.objects.get(id=reservation_id, user=request.user)
+        
+        # Set the deposit amount (you can calculate this based on table size, etc.)
+        deposit_amount = settings.TABLE_RESERVATION_DEPOSIT
+        
+        return render(request, 'payment.html', {
+            'reservation': reservation,
+            'deposit_amount': deposit_amount
+        })
+    except Reservation.DoesNotExist:
+        messages.error(request, "Reservation not found or you don't have permission to access it.")
+        return redirect('home')
+    
+
+@login_required(login_url='login')
+def payment_status(request, reservation_id):
+    try:
+        reservation = Reservation.objects.get(id=reservation_id, user=request.user)
+        return render(request, 'payment_status.html', {
+            'reservation': reservation
+        })
+    except Reservation.DoesNotExist:
+        messages.error(request, "Reservation not found or you don't have permission to access it.")
+        return redirect('home')
