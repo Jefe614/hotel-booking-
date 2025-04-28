@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% load widget_tweaks %}
 
-
 {% block title %}Book a Table | Bava Restaurant{% endblock %}
 
 {% block content %}
@@ -10,7 +9,7 @@
         <div class="form-container">
             <h1 class="text-center mb-4" style="color: var(--primary-color);">Book a Table</h1>
             
-            <form method="post" class="needs-validation" novalidate>
+            <form method="post" class="needs-validation" novalidate id="reservationForm">
                 {% csrf_token %}
                 
                 <div class="mb-3">
@@ -71,36 +70,96 @@
                     {{ form.special_requests|add_class:"form-control" }}
                 </div>
 
-                <div class="d-grid">
+                <div class="d-grid mb-3">
                     <button type="submit" class="btn btn-primary btn-lg">
                         <i class="bi bi-check-circle"></i> Confirm Booking
                     </button>
                 </div>
+
+                <div class="d-grid">
+                    <button type="button" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#mpesaModal">
+                        <i class="bi bi-phone"></i> Pay with M-Pesa
+                    </button>
+                </div>
+
             </form>
         </div>
     </div>
 </div>
 
+<!-- M-Pesa Modal -->
+<div class="modal fade" id="mpesaModal" tabindex="-1" aria-labelledby="mpesaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="mpesaModalLabel">Complete Payment</h5>
+        </div>
+        <div class="modal-body text-center">
+          <p>Waiting for Mpesa Payment Authorization...</p>
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
 <script>
-// Form validation example
+  // Form validation and payment trigger
+  // Form validation and payment trigger
 (function() {
     'use strict';
     window.addEventListener('load', function() {
-        // Get all forms that need validation
-        var forms = document.getElementsByClassName('needs-validation');
-        // Loop through each form and add submit listener
-        var validation = Array.prototype.filter.call(forms, function(form) {
-            form.addEventListener('submit', function(event) {
-                // If the form is not valid, prevent submission
-                if (form.checkValidity() === false) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                // Add the 'was-validated' class to show validation feedback
-                form.classList.add('was-validated');
-            }, false);
-        });
+        var form = document.getElementById('reservationForm');
+
+        form.addEventListener('submit', function(event) {
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                event.preventDefault(); // Stop normal form submission
+                // Show Mpesa Modal
+                var mpesaModal = new bootstrap.Modal(document.getElementById('mpesaModal'));
+                mpesaModal.show();
+
+                // Collect phone number (you can tweak this)
+                var phoneNumber = document.getElementById('id_customer_phone').value;
+
+                // Initiate Mpesa STK Push via AJAX
+                fetch('{% url "mpesa_stk_push" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: JSON.stringify({
+                        phone: phoneNumber,
+                        amount: 1  // You can change amount as needed
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // After payment request, actually submit the form
+                        form.submit();
+                    } else {
+                        // Check if the error is an object, and stringify it
+                        const errorMessage = JSON.stringify(data.error) || 'Unknown error';
+                        alert("Payment failed: " + errorMessage);
+                        mpesaModal.hide();
+                    }
+                })
+                .catch(error => {
+                    console.error('Payment Error:', error);
+                    alert("An error occurred during payment.");
+                    mpesaModal.hide();
+                });
+            }
+            form.classList.add('was-validated');
+        }, false);
     }, false);
 })();
+
 </script>
+
 {% endblock %}

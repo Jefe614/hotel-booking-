@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from django.contrib.messages import constants as messages
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -122,8 +124,29 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+
+
+MESSAGE_TAGS = {
+    messages.DEBUG: 'alert-info',
+    messages.INFO: 'alert-info',
+    messages.SUCCESS: 'alert-success',
+    messages.WARNING: 'alert-warning',
+    messages.ERROR: 'alert-danger',
+}
+
+MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY", "FlXOgDSE3i2DHZmAruw9joAAHwrIPpOcm1NqjA5myj6E4FqC")
+MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET", "DFxDfapACxdDTky0fjGabs6jmXbIoQBk7GsDieWFmZfSpP6j3BK9ElTkE4PSYebd")
+MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE", "174379")
+MPESA_PASSKEY = os.getenv("MPESA_PASSKEY", "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919")
+MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL", "https://6a6c-41-90-15-251.ngrok-free.app/mpesa-callback/")

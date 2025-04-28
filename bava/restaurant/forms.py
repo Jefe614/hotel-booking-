@@ -16,6 +16,8 @@ class ReservationForm(forms.ModelForm):
             'reservation_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'reservation_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'special_requests': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'payment_method': forms.Select(attrs={'class': 'form-select'})
+
         }
 
     def __init__(self, *args, **kwargs):
@@ -26,6 +28,8 @@ class ReservationForm(forms.ModelForm):
         # Add Bootstrap classes to all fields
         for field in self.fields:
             if field == 'table':
+                self.fields[field].widget.attrs.update({'class': 'form-select'})
+            if field == 'table' or field == 'payment_method':
                 self.fields[field].widget.attrs.update({'class': 'form-select'})
             elif field != 'special_requests':  # special_requests already has its class
                 self.fields[field].widget.attrs.update({'class': 'form-control'})
@@ -73,6 +77,11 @@ class MenuItemForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'available': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+    
+    # Add this to help with debugging
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['image'].required = False  # Make image optional if needed
 
 
 class BookingForm(forms.Form):
