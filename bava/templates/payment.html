@@ -1,4 +1,3 @@
-
 {% extends 'base.html' %}
 
 {% block title %}Complete Payment | Bava Restaurant{% endblock %}
@@ -44,12 +43,20 @@
                 <div class="payment-instructions alert alert-info">
                     <p><i class="bi bi-info-circle"></i> To confirm your reservation, please pay the deposit amount of <strong>KSh {{ deposit_amount }}</strong> via M-Pesa.</p>
                 </div>
+
+                <!-- Payment Status Display -->
+                <div id="paymentStatusArea" class="alert alert-warning d-none">
+                    <div id="paymentStatusMessage"></div>
+                </div>
                 
                 <div class="d-grid">
                     <button id="mpesaPayButton" class="btn btn-success btn-lg">
                         <i class="bi bi-phone"></i> Pay with M-Pesa
                     </button>
                 </div>
+            </div>
+            <div class="card-footer text-muted">
+                <small><i class="bi bi-shield-check"></i> Secured by M-Pesa</small>
             </div>
         </div>
     </div>
@@ -63,10 +70,17 @@
           <h5 class="modal-title" id="mpesaModalLabel">Complete Payment</h5>
         </div>
         <div class="modal-body text-center">
-          <p>Waiting for Mpesa Payment Authorization...</p>
-          <p class="text-muted">Please check your phone and enter your M-Pesa PIN when prompted.</p>
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+          <div id="processingPayment">
+            <p>Waiting for Mpesa Payment Authorization...</p>
+            <p class="text-muted">Please check your phone and enter your M-Pesa PIN when prompted.</p>
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+          <div id="paymentError" class="d-none text-danger">
+            <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+            <p class="error-message mt-3"></p>
+            <button class="btn btn-outline-secondary btn-sm mt-2" id="closeModalBtn">Close</button>
           </div>
         </div>
       </div>
@@ -76,10 +90,17 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const mpesaPayButton = document.getElementById('mpesaPayButton');
+    let mpesaModal;
     
+    // Initialize modal
     mpesaPayButton.addEventListener('click', function() {
         // Show the modal
-        const mpesaModal = new bootstrap.Modal(document.getElementById('mpesaModal'));
+        mpesaModal = new bootstrap.Modal(document.getElementById('mpesaModal'));
+        
+        // Reset UI elements
+        document.getElementById('processingPayment').classList.remove('d-none');
+        document.getElementById('paymentError').classList.add('d-none');
+        
         mpesaModal.show();
         
         // Send the payment request
@@ -95,27 +116,51 @@ document.addEventListener('DOMContentLoaded', function() {
                 reservation_id: {{ reservation.id }}
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response failed');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                // Wait for a few seconds to simulate processing
+                // Check status after a delay to allow processing
                 setTimeout(function() {
-                    // Redirect to a "payment processing" page or success page
+                    // Redirect to status page
                     window.location.href = '{% url "payment_status" reservation.id %}';
                 }, 5000);
             } else {
-                // Handle error
-                mpesaModal.hide();
-                alert("Payment failed: " + (data.error ? JSON.stringify(data.error) : "Unknown error"));
+                // Show error in modal
+                document.getElementById('processingPayment').classList.add('d-none');
+                document.getElementById('paymentError').classList.remove('d-none');
+                
+                // Display error message
+                const errorMsg = document.querySelector('#paymentError .error-message');
+                errorMsg.textContent = data.error || "Payment processing failed. Please try again.";
+                
+                // Add event listener to close button
+                document.getElementById('closeModalBtn').addEventListener('click', function() {
+                    mpesaModal.hide();
+                });
             }
         })
         .catch(error => {
             console.error('Payment Error:', error);
-            mpesaModal.hide();
-            alert("An error occurred during payment processing.");
+            
+            // Show error in modal
+            document.getElementById('processingPayment').classList.add('d-none');
+            document.getElementById('paymentError').classList.remove('d-none');
+            
+            // Display error message
+            const errorMsg = document.querySelector('#paymentError .error-message');
+            errorMsg.textContent = "Network error. Please check your connection and try again.";
+            
+            // Add event listener to close button
+            document.getElementById('closeModalBtn').addEventListener('click', function() {
+                mpesaModal.hide();
+            });
         });
     });
 });
 </script>
 {% endblock %}
-```
