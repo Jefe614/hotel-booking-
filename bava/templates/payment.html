@@ -90,18 +90,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const mpesaPayButton = document.getElementById('mpesaPayButton');
-    let mpesaModal;
     
-    // Initialize modal
     mpesaPayButton.addEventListener('click', function() {
-        // Show the modal
-        mpesaModal = new bootstrap.Modal(document.getElementById('mpesaModal'));
-        
-        // Reset UI elements
-        document.getElementById('processingPayment').classList.remove('d-none');
-        document.getElementById('paymentError').classList.add('d-none');
-        
-        mpesaModal.show();
+        // Simple loading state
+        mpesaPayButton.disabled = true;
+        mpesaPayButton.innerHTML = '<i class="bi bi-arrow-repeat spinner"></i> Processing...';
         
         // Send the payment request
         fetch('{% url "mpesa_stk_push" %}', {
@@ -116,49 +109,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 reservation_id: {{ reservation.id }}
             })
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response failed');
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Check status after a delay to allow processing
+                // Redirect to status page after a short delay
                 setTimeout(function() {
-                    // Redirect to status page
                     window.location.href = '{% url "payment_status" reservation.id %}';
-                }, 5000);
+                }, 3000);
             } else {
-                // Show error in modal
-                document.getElementById('processingPayment').classList.add('d-none');
-                document.getElementById('paymentError').classList.remove('d-none');
-                
-                // Display error message
-                const errorMsg = document.querySelector('#paymentError .error-message');
-                errorMsg.textContent = data.error || "Payment processing failed. Please try again.";
-                
-                // Add event listener to close button
-                document.getElementById('closeModalBtn').addEventListener('click', function() {
-                    mpesaModal.hide();
-                });
+                alert(data.error || "Payment request failed. Please try again.");
+                mpesaPayButton.disabled = false;
+                mpesaPayButton.innerHTML = '<i class="bi bi-phone"></i> Pay with M-Pesa';
             }
         })
         .catch(error => {
-            console.error('Payment Error:', error);
-            
-            // Show error in modal
-            document.getElementById('processingPayment').classList.add('d-none');
-            document.getElementById('paymentError').classList.remove('d-none');
-            
-            // Display error message
-            const errorMsg = document.querySelector('#paymentError .error-message');
-            errorMsg.textContent = "Network error. Please check your connection and try again.";
-            
-            // Add event listener to close button
-            document.getElementById('closeModalBtn').addEventListener('click', function() {
-                mpesaModal.hide();
-            });
+            alert("Payment request failed. Please check your connection and try again.");
+            mpesaPayButton.disabled = false;
+            mpesaPayButton.innerHTML = '<i class="bi bi-phone"></i> Pay with M-Pesa';
         });
     });
 });
