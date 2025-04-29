@@ -1,133 +1,173 @@
 {% extends 'base.html' %}
+{% load widget_tweaks %}
 
-{% block title %}Complete Payment | Bava Restaurant{% endblock %}
+{% block title %}Book a Table | Bava Restaurant{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h3 class="card-title mb-0">Complete Reservation Payment</h3>
+    <div class="col-md-8">
+        <div class="form-container">
+            <h1 class="text-center mb-4" style="color: var(--primary-color);">Book a Table</h1>
+            
+            <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle"></i> A deposit of KSh {{ deposit_amount }} is required to confirm your booking.
             </div>
-            <div class="card-body">
-                <div class="reservation-details mb-4">
-                    <h4>Reservation Details</h4>
-                    <table class="table table-striped">
-                        <tr>
-                            <th>Name:</th>
-                            <td>{{ reservation.customer_name }}</td>
-                        </tr>
-                        <tr>
-                            <th>Date:</th>
-                            <td>{{ reservation.reservation_date }}</td>
-                        </tr>
-                        <tr>
-                            <th>Time:</th>
-                            <td>{{ reservation.reservation_time }}</td>
-                        </tr>
-                        <tr>
-                            <th>Guests:</th>
-                            <td>{{ reservation.number_of_guests }}</td>
-                        </tr>
-                        <tr>
-                            <th>Table:</th>
-                            <td>{{ reservation.table }}</td>
-                        </tr>
-                        <tr class="table-primary">
-                            <th>Deposit Amount:</th>
-                            <td>KSh {{ deposit_amount }}</td>
-                        </tr>
-                    </table>
-                </div>
+            
+            <form method="post" class="needs-validation" novalidate id="reservationForm">
+                {% csrf_token %}
                 
-                <div class="payment-instructions alert alert-info">
-                    <p><i class="bi bi-info-circle"></i> To confirm your reservation, please pay the deposit amount of <strong>KSh {{ deposit_amount }}</strong> via M-Pesa.</p>
+                <div class="mb-3">
+                    <label for="id_customer_name" class="form-label">Full Name</label>
+                    {{ form.customer_name|add_class:"form-control" }}
+                    <div class="invalid-feedback">
+                        Please provide your name.
+                    </div>
                 </div>
 
-                <!-- Payment Status Display -->
-                <div id="paymentStatusArea" class="alert alert-warning d-none">
-                    <div id="paymentStatusMessage"></div>
+                <div class="mb-3">
+                    <label for="id_customer_email" class="form-label">Email</label>
+                    {{ form.customer_email|add_class:"form-control" }}
+                    <div class="invalid-feedback">
+                        Please provide a valid email.
+                    </div>
                 </div>
                 
-                <div class="d-grid">
-                    <button id="mpesaPayButton" class="btn btn-success btn-lg">
-                        <i class="bi bi-phone"></i> Pay with M-Pesa
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="id_customer_phone" class="form-label">Phone Number</label>
+                        {{ form.customer_phone|add_class:"form-control" }}
+                        <div class="invalid-feedback">
+                            Please provide a phone number.
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="id_number_of_guests" class="form-label">Number of Guests</label>
+                        {{ form.number_of_guests|add_class:"form-control" }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="id_reservation_date" class="form-label">Date</label>
+                        {{ form.reservation_date|add_class:"form-control" }}
+                        <div class="invalid-feedback">
+                            Please select a date.
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="id_reservation_time" class="form-label">Time</label>
+                        {{ form.reservation_time|add_class:"form-control" }}
+                        <div class="invalid-feedback">
+                            Please select a time.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.table.id_for_label }}" class="form-label">Table Preference</label>
+                    {{ form.table }}
+                    <small class="form-text text-muted">We'll try to accommodate your preference based on availability.</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_special_requests" class="form-label">Special Requests</label>
+                    {{ form.special_requests|add_class:"form-control" }}
+                </div>
+
+                <div class="mb-3">
+                    <!-- <label class="form-label">Payment Method</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="payment_method" id="paypalPayment" value="paypal" checked>
+                        <label class="form-check-label" for="paypalPayment">
+                            <i class="bi bi-paypal"></i> Pay Deposit with PayPal (KSh {{ deposit_amount }})
+                        </label>
+                    </div> -->
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="payment_method" id="cashPayment" value="cash">
+                        <label class="form-check-label" for="cashPayment">
+                            <i class="bi bi-cash"></i> Pay Deposit at Restaurant
+                        </label>
+                    </div>
+                </div>
+
+                <div id="paypal-button-container" class="mb-3" style="display: none;"></div>
+
+                <div class="d-grid mb-3">
+                    <button type="submit" id="continueButton" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle"></i> Continue to Payment
                     </button>
                 </div>
-            </div>
-            <div class="card-footer text-muted">
-                <small><i class="bi bi-shield-check"></i> Secured by M-Pesa</small>
-            </div>
+
+                <!-- PayPal JavaScript SDK -->
+                <script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=KES"></script>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const paypalRadio = document.getElementById('paypalPayment');
+                        const cashRadio = document.getElementById('cashPayment');
+                        const paypalButtonContainer = document.getElementById('paypal-button-container');
+                        const continueButton = document.getElementById('continueButton');
+                        const form = document.getElementById('reservationForm');
+                        
+                        // Function to toggle payment UI based on selection
+                        function togglePaymentUI() {
+                            if (paypalRadio.checked) {
+                                paypalButtonContainer.style.display = 'block';
+                                continueButton.style.display = 'none';
+                            } else {
+                                paypalButtonContainer.style.display = 'none';
+                                continueButton.style.display = 'block';
+                            }
+                        }
+                        
+                        // Initialize payment UI
+                        togglePaymentUI();
+                        
+                        // Add event listeners to payment method radios
+                        paypalRadio.addEventListener('change', togglePaymentUI);
+                        cashRadio.addEventListener('change', togglePaymentUI);
+                        
+                        // Initialize PayPal buttons
+                        paypal.Buttons({
+                            createOrder: function(data, actions) {
+                                // Get form data
+                                const formData = new FormData(form);
+                                
+                                // You would typically validate form data here before creating order
+                                
+                                // Create PayPal order
+                                return actions.order.create({
+                                    purchase_units: [{
+                                        amount: {
+                                            value: '{{ deposit_amount }}',
+                                            currency_code: 'KES'
+                                        },
+                                        description: 'Table Reservation Deposit for Bava Restaurant'
+                                    }]
+                                });
+                            },
+                            onApprove: function(data, actions) {
+                                // Capture the funds from the transaction
+                                return actions.order.capture().then(function(details) {
+                                    // Add payment details to form
+                                    const paymentIdInput = document.createElement('input');
+                                    paymentIdInput.type = 'hidden';
+                                    paymentIdInput.name = 'paypal_payment_id';
+                                    paymentIdInput.value = details.id;
+                                    form.appendChild(paymentIdInput);
+                                    
+                                    // Submit the form to complete reservation
+                                    form.submit();
+                                });
+                            },
+                            onError: function(err) {
+                                console.error('PayPal Error:', err);
+                                alert('There was an error processing your payment. Please try again.');
+                            }
+                        }).render('#paypal-button-container');
+                    });
+                </script>
+            </form>
         </div>
     </div>
 </div>
-
-<!-- M-Pesa Modal -->
-<div class="modal fade" id="mpesaModal" tabindex="-1" aria-labelledby="mpesaModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="mpesaModalLabel">Complete Payment</h5>
-        </div>
-        <div class="modal-body text-center">
-          <div id="processingPayment">
-            <p>Waiting for Mpesa Payment Authorization...</p>
-            <p class="text-muted">Please check your phone and enter your M-Pesa PIN when prompted.</p>
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-          <div id="paymentError" class="d-none text-danger">
-            <i class="bi bi-exclamation-triangle-fill fs-1"></i>
-            <p class="error-message mt-3"></p>
-            <button class="btn btn-outline-secondary btn-sm mt-2" id="closeModalBtn">Close</button>
-          </div>
-        </div>
-      </div>
-    </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const mpesaPayButton = document.getElementById('mpesaPayButton');
-    
-    mpesaPayButton.addEventListener('click', function() {
-        // Simple loading state
-        mpesaPayButton.disabled = true;
-        mpesaPayButton.innerHTML = '<i class="bi bi-arrow-repeat spinner"></i> Processing...';
-        
-        // Send the payment request
-        fetch('{% url "mpesa_stk_push" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}',
-            },
-            body: JSON.stringify({
-                phone: '{{ reservation.customer_phone }}',
-                amount: {{ deposit_amount }},
-                reservation_id: {{ reservation.id }}
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Redirect to status page after a short delay
-                setTimeout(function() {
-                    window.location.href = '{% url "payment_status" reservation.id %}';
-                }, 3000);
-            } else {
-                alert(data.error || "Payment request failed. Please try again.");
-                mpesaPayButton.disabled = false;
-                mpesaPayButton.innerHTML = '<i class="bi bi-phone"></i> Pay with M-Pesa';
-            }
-        })
-        .catch(error => {
-            alert("Payment request failed. Please check your connection and try again.");
-            mpesaPayButton.disabled = false;
-            mpesaPayButton.innerHTML = '<i class="bi bi-phone"></i> Pay with M-Pesa';
-        });
-    });
-});
-</script>
 {% endblock %}
